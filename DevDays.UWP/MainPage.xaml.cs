@@ -131,6 +131,7 @@ namespace DevDays.UWP
 
             void UpdateAverage()
             {
+                // There is a better way
                 var filterBy = filteredAnimals.Where(x => x.AnimalRating > 0).ToArray();
                 if (!filterBy.Any())
                 {
@@ -159,6 +160,13 @@ namespace DevDays.UWP
 
         IObservable<Unit> SetupPointerMovedSample()
         {
+            this.Events().PointerPressed
+                    .Select(_ => this.Events().PointerMoved
+                            .TakeUntil(this.Events().PointerReleased)
+                    )
+                    .ToList();  //flatten list;
+
+
             return
                 this.Events()
                     .PointerPressed.Do(_ => lblEvents.Text = "Pressed")
