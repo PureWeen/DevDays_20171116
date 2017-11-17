@@ -62,10 +62,9 @@ namespace DevDays.UWP
 
 
 
-        ReadOnlyObservableCollection<Animal> filteredAnimals;
         IObservable<Unit> SetupFilteringAnimals()
         {
-
+            ReadOnlyObservableCollection<Animal> filteredAnimals;
             SourceList<Animal> animalList = Animal.CreateMeSomeAnimalsPlease();
 
             IObservable<Func<Animal, bool>> dynamicFilter = 
@@ -89,8 +88,11 @@ namespace DevDays.UWP
                    .Filter(dynamicFilter) //accepts any observable
                    .Sort(dynamicSort)
                    .ObserveOnDispatcher()
-                   .Bind(out filteredAnimals);
+                   .Bind(out filteredAnimals)
+                   .Publish();
 
+            returnValue.Connect();
+            
 
             //Create filtered source to watch for changes on
             var filteredAnimalsChanged = 
@@ -122,7 +124,7 @@ namespace DevDays.UWP
                 if (text == null || text.Length < 3)
                     return animal => true;
 
-                
+                text = text.ToLower();
                 return animal => animal.Name.ToLower().Contains(text)
                                  || animal.Type.ToLower().Contains(text)
                                  || animal.Family.ToString().ToLower().Contains(text);
