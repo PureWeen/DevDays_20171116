@@ -19,6 +19,7 @@ using DynamicData;
 using System.Reactive.Disposables;
 using System.Collections.ObjectModel;
 using DynamicData.Binding;
+using DynamicData.Aggregation;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -66,24 +67,68 @@ namespace DevDays.UWP
         {
 
             SourceList<Animal> animalList = Animal.CreateMeSomeAnimalsPlease();
-            var dynamicFilter = 
-                this.WhenAnyValue(x => x.tbFilterText.Text)
+
+            IObservable<Func<Animal, bool>> dynamicFilter = 
+                // ReactiveUI connecting to the DepedencyProperty
+                this.WhenAnyValue(x => x.tbFilterText.Text) 
+                // Debounce
                     .Throttle(TimeSpan.FromMilliseconds(250))
                     .Select(CreatePredicate);
 
+            IObservable<IComparer<Animal>> dynamicSort =
+                this.WhenAnyValue(x => x.cbSortByName.IsChecked)
+                    .Select(x => x ?? false)
+                    .Select(isChecked => isChecked ? 
+                        SortExpressionComparer<Animal>.Ascending(i => i.Name) 
+                        : SortExpressionComparer<Animal>.Ascending(i => animalList.Items.IndexOf(i))
+                    );
 
-            var returnValue = 
+            var returnValue =
                 animalList
                    .Connect()
                    .Filter(dynamicFilter) //accepts any observable
-                   .Sort(SortExpressionComparer<Animal>.Ascending(i => i.Name))
+                   .Sort(dynamicSort)
                    .ObserveOnDispatcher()
                    .Bind(out filteredAnimals);
 
+
+            //Create filtered source to watch for changes on
+            var filteredAnimalsChanged = 
+                filteredAnimals
+                    .ToObservableChangeSet()
+                    .Publish()
+                    .RefCount();
+
+
+            var calculateAverage =
+                // Watch for property Changed events
+                filteredAnimalsChanged
+                   .WhenPropertyChanged(x => x.AnimalRating).ToUnit()
+
+                   // watch for list changed
+                   .Merge(filteredAnimalsChanged.ToUnit())
+
+                   // Perform calculation over data set
+                    .Select(_ => filteredAnimals.Where(x => x.AnimalRating > 0).ToArray())
+                    .Do(filterBy =>
+                    {
+                        if(!filterBy.Any())
+                        {
+                            tbAverageRating.Text = "Unknown";
+                            return;
+                        }
+
+                        tbAverageRating.Text =
+                            filterBy.Average(x => x.AnimalRating)
+                                .ToString();
+                    })
+                    .ToUnit();
+
+
             lvFilteredAnimals.ItemsSource = filteredAnimals;
 
-            return returnValue.ToSignal();
 
+            return returnValue.ToUnit().Merge(calculateAverage);
 
             Func<Animal, bool> CreatePredicate(string text)
             {
@@ -106,7 +151,7 @@ namespace DevDays.UWP
                     .Buffer(5)
                     .Do(_=> lblClicked.Text = "Good Job")
                     .DelayLabelClear(lblClicked)
-                    .ToSignal();
+                    .ToUnit();
         }
 
 
@@ -131,7 +176,7 @@ namespace DevDays.UWP
 
                     //delay a couple seconds then clear label
                     .DelayLabelClear(lblEvents)
-                    .ToSignal();
+                    .ToUnit();
         } 
     }
 }

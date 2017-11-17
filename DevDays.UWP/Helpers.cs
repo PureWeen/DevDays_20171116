@@ -41,7 +41,7 @@ namespace DevDays
                 .Do(__ => view.Text = "");
         }
 
-        public static IObservable<Unit> ToSignal<T>(this IObservable<T> This)
+        public static IObservable<Unit> ToUnit<T>(this IObservable<T> This)
         {
             return
                 This.Select(_ => Unit.Default);

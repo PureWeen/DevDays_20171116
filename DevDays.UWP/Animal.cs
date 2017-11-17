@@ -23,11 +23,11 @@ namespace DevDays.UWP
         public string Type { get; }
         public AnimalFamily Family { get; }
 
-        private bool _includeInResults;
-        public bool IncludeInResults
+        private int _animalRating;
+        public int AnimalRating
         {
-            get => _includeInResults;
-            set => this.RaiseAndSetIfChanged(ref _includeInResults, value);
+            get => _animalRating;
+            set => this.RaiseAndSetIfChanged(ref _animalRating, value);
         }
 
         public Animal(string name, string type, AnimalFamily family)

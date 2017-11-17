@@ -30,8 +30,25 @@
         </ListView>
 
         <StackPanel x:Name="DynamicDataFiltering">
-            <TextBox Background="Pink" Width="200" x:Name="tbFilterText"></TextBox>
+            <CheckBox x:Name="cbSortByName" Content="Sort By Name"></CheckBox>
+            <StackPanel HorizontalAlignment="Center">
+                <TextBlock Text="Filter"></TextBlock>
+                <TextBox Background="Pink" Width="200" x:Name="tbFilterText"></TextBox>
+            </StackPanel>
+            <StackPanel  HorizontalAlignment="Center">
+                <TextBlock Text="Average Rating"></TextBlock>
+                <TextBlock Width="200" x:Name="tbAverageRating"></TextBlock>
+            </StackPanel>
             <ListView Width="400" Height="400" x:Name="lvFilteredAnimals" HorizontalAlignment="Left">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Margin="0 0 5 0" Text="Rate Me:"></TextBlock>
+                            <TextBox Margin="0 0 10 0" Text="{Binding AnimalRating, Mode=TwoWay}"/>
+                            <TextBlock Text="{Binding Name}"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
             </ListView>
         </StackPanel>
 
