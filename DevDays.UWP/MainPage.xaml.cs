@@ -107,28 +107,15 @@ namespace DevDays.UWP
 
                    // watch for list changed
                    .Merge(filteredAnimalsChanged.ToUnit())
-
-                   // Perform calculation over data set
-                    .Select(_ => filteredAnimals.Where(x => x.AnimalRating > 0).ToArray())
-                    .Do(filterBy =>
-                    {
-                        if(!filterBy.Any())
-                        {
-                            tbAverageRating.Text = "Unknown";
-                            return;
-                        }
-
-                        tbAverageRating.Text =
-                            filterBy.Average(x => x.AnimalRating)
-                                .ToString();
-                    })
-                    .ToUnit();
+                   .Do(_=> UpdateAverage())
+                   .ToUnit();
 
 
             lvFilteredAnimals.ItemsSource = filteredAnimals;
-
-
             return returnValue.ToUnit().Merge(calculateAverage);
+
+
+
 
             Func<Animal, bool> CreatePredicate(string text)
             {
@@ -139,6 +126,21 @@ namespace DevDays.UWP
                 return animal => animal.Name.ToLower().Contains(text)
                                  || animal.Type.ToLower().Contains(text)
                                  || animal.Family.ToString().ToLower().Contains(text);
+            }
+
+
+            void UpdateAverage()
+            {
+                var filterBy = filteredAnimals.Where(x => x.AnimalRating > 0).ToArray();
+                if (!filterBy.Any())
+                {
+                    tbAverageRating.Text = "Unknown";
+                    return;
+                }
+
+                tbAverageRating.Text =
+                    filterBy.Average(x => x.AnimalRating)
+                        .ToString();
             }
         }
 
