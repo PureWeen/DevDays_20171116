@@ -8,8 +8,25 @@
     mc:Ignorable="d">
 
     <StackPanel x:Name="mainLayout" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" HorizontalAlignment="Stretch">
-        <Button Width="500" Height="100" FontSize="40" x:Name="btnClick" Content="Click Me 5 More Times" HorizontalAlignment="Center"></Button>
-        <TextBlock TextWrapping="Wrap"   x:Name="lblClicked" FontSize="40" HorizontalAlignment="Center"></TextBlock>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+            <Viewbox Height="50">
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton IsChecked="True" x:Name="RadioDemo" Content="Button Demo" GroupName="Group"></RadioButton>
+                    <RadioButton x:Name="RadioPosition" Content="Position Demo" GroupName="Group"></RadioButton>
+                </StackPanel>
+            </Viewbox>
+        </StackPanel>
+        
         <TextBlock x:Name="lblEvents" FontSize="40" HorizontalAlignment="Center"></TextBlock>
+
+        <StackPanel x:Name="spButtonDemo">
+            <Button Width="500" Height="100" FontSize="40" x:Name="btnClick" Content="Click Me 5 Times" HorizontalAlignment="Center"></Button>
+            <TextBlock TextWrapping="Wrap"   x:Name="lblClicked" FontSize="40" HorizontalAlignment="Center"></TextBlock>
+        </StackPanel>
+
+
+        <ListView Width="400" Height="400" x:Name="lvData" HorizontalAlignment="Left">            
+        </ListView>
+
     </StackPanel>
 </Page>
