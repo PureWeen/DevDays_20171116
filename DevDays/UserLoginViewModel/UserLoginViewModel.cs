@@ -1,17 +1,23 @@
 ﻿using ReactiveUI;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Reactive;
 using System.Reactive.Concurrency;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Text;
+using System.Windows.Input;
 
 namespace DevDays
 {
-    public class UserLoginViewModel : ReactiveObject
+    public class UserLoginViewModel : ReactiveObject, IDisposable
     {
 
         IScheduler _backgroundScheduler;
         IScheduler _uiScheduler;
+        CompositeDisposable disposable = new CompositeDisposable();
+
         public UserLoginViewModel(IScheduler backgroundScheduler, IScheduler uiScheduler)
         {
             _backgroundScheduler = backgroundScheduler;
@@ -19,6 +25,7 @@ namespace DevDays
 
             SetupPasswordObervables();
             SetupValidationLogic();
+            SetupCommands();
         }
 
 
@@ -28,20 +35,34 @@ namespace DevDays
             _isPasswordValid =
                 this.WhenAnyValue(x => x.Password)
                     .Select(password => !String.IsNullOrWhiteSpace(password) && !password.Contains("InvalidPassword"))
-                    .ToProperty(this, x => x.IsPasswordValid, scheduler: _uiScheduler, initialValue:false);
+                    .ToProperty(this, x => x.IsPasswordValid, scheduler: _uiScheduler, initialValue:false)
+                    .DisposeWith(disposable);
 
+
+
+            var resetHaveIBeenPwned =
+                PasswordChanged.Select(_ => "initialValue");
 
             _HaveIBeenPwnedData =
-                this.WhenAnyValue(x => x.Password, x=> x.IsPasswordValid)
-                   .Select(e => new { password = e.Item1, isValid = e.Item2  })
-                   .Where(e => e.isValid) //check validation
-                   .Select(e => e.password) //select the password
+                PasswordChangedAndIsValid
                    .Throttle(TimeSpan.FromMilliseconds(500), scheduler: _backgroundScheduler)
-                   .Select(password => HaveIBeenPwnedFakeServerCall(password).TakeUntil(this.WhenAnyValue(x => x.Password).Skip(1)))
+                   .Select(password => HaveIBeenPwnedFakeServerCall(password).TakeUntil(PasswordChanged.Skip(1)))
                    .Switch()
-                   .ToProperty(this, x => x.HaveIBeenPwnedData, scheduler: _uiScheduler, initialValue: "initialValue");
+                   .Merge(resetHaveIBeenPwned)
+                   .ToProperty(this, x => x.HaveIBeenPwnedData, scheduler: _uiScheduler, initialValue: "initialValue")
+                   .DisposeWith(disposable);
 
         }
+
+        public IObservable<string> PasswordChanged =>
+            this.WhenAnyValue(x => x.Password);
+
+
+        public IObservable<string> PasswordChangedAndIsValid =>
+           this.WhenAnyValue(x => x.Password, x => x.IsPasswordValid)
+                   .Select(e => new { password = e.Item1, isValid = e.Item2 })
+                   .Where(e => e.isValid) //check validation
+                   .Select(e => e.password); //select the password
 
 
         string _Password;
@@ -81,8 +102,7 @@ namespace DevDays
         }
         #endregion
 
-
-        #region validate Passwords
+        #region validate UserNames
 
 
 
@@ -118,17 +138,44 @@ namespace DevDays
             _UserNameIsValid =
                 this.WhenAnyValue(x => x.UserName)
                     .Select(userName => UserName == "goodusername")
-                    .ToProperty(this, x=> x.UserNameIsValid, scheduler:_uiScheduler);
+                    .ToProperty(this, x=> x.UserNameIsValid, scheduler:_uiScheduler)
+                    .DisposeWith(disposable);
 
 
             _isEverythingValid =
-                this.WhenAnyValue(x => x.HaveIBeenPwnedData, x => x.UserNameIsValid, x=> x.IsPasswordValid)
-                    .Select(i => new { pwnedResult = i.Item1, isValid = i.Item2 && i.Item3  })
+                this.WhenAnyValue(x => x.HaveIBeenPwnedData, x => x.UserNameIsValid, x => x.IsPasswordValid)
+                    .Select(i => new { pwnedResult = i.Item1, isValid = i.Item2 && i.Item3 })
                     .Select(result => result.isValid && result.pwnedResult == "not pwned")
-                    .ToProperty(this, x=> x.UserNameIsValid, scheduler: _uiScheduler);
+                    .ToProperty(this, x => x.UserNameIsValid, scheduler: _uiScheduler)
+                    .DisposeWith(disposable);
                 
         }
         #endregion
 
+
+
+
+        ReactiveCommand<Unit, bool> _LogTheUserIn;
+
+
+        public ReactiveCommand<Unit, bool> LogTheUserIn => _LogTheUserIn;  
+        private void SetupCommands()
+        {
+            _LogTheUserIn = 
+                ReactiveCommand.CreateFromObservable(
+                    () =>  Observable.Timer(TimeSpan.FromMilliseconds(2000), _backgroundScheduler)
+                            .TakeUntil(PasswordChanged.Skip(1))
+                            .Select(_ => true),
+                    canExecute: this.WhenAnyValue(x=> x.UserNameIsValid),
+                    outputScheduler: _uiScheduler);
+        }
+
+
+
+
+        public void Dispose()
+        {
+            disposable.Dispose();
+        }
     }
 }

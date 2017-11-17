@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <Folder Include="GeneralObservables\" />
+    <Folder Include="DynamicData\" />
   </ItemGroup>
 
 </Project>

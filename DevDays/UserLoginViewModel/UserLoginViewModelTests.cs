@@ -4,8 +4,11 @@ using ReactiveUI.Testing;
 using System;
 using System.Collections.Generic;
 using System.Reactive.Concurrency;
+using System.Reactive.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Xunit;
+using System.Reactive;
 
 public class UlTests
 {
@@ -20,7 +23,8 @@ public class UlTests
     [Fact]
     public void InitialSetup()
     {
-        (new TestScheduler()).With(sched => {
+        (new TestScheduler()).With(sched =>
+        {
 
             var vm = Create(sched);
             sched.AdvanceByMs(500);
@@ -33,7 +37,8 @@ public class UlTests
     [Fact]
     public void PasswordsWithInvalidPasswordAreNotOk()
     {
-        (new TestScheduler()).With(sched => {
+        (new TestScheduler()).With(sched =>
+        {
 
             var vm = Create(sched);
             vm.Password = "InvalidPassword";
@@ -46,7 +51,8 @@ public class UlTests
     [Fact]
     public void NotPwned()
     {
-        (new TestScheduler()).With(sched => {
+        (new TestScheduler()).With(sched =>
+        {
 
             var vm = Create(sched);
             vm.Password = "thisoneisfine";
@@ -61,7 +67,8 @@ public class UlTests
     [Fact]
     public void UserChangedThereMinds()
     {
-        (new TestScheduler()).With(sched => {
+        (new TestScheduler()).With(sched =>
+        {
 
             var vm = Create(sched);
             vm.Password = "thisoneisfine";
@@ -80,7 +87,8 @@ public class UlTests
     [Fact]
     public void IsUserNameIsInValid()
     {
-        (new TestScheduler()).With(sched => {
+        (new TestScheduler()).With(sched =>
+        {
 
             var vm = Create(sched);
             Assert.False(vm.UserNameIsValid);
@@ -93,7 +101,8 @@ public class UlTests
     [Fact]
     public void IsUserNameValid()
     {
-        (new TestScheduler()).With(sched => {
+        (new TestScheduler()).With(sched =>
+        {
 
             var vm = Create(sched);
             vm.UserName = "goodusername";
@@ -106,22 +115,59 @@ public class UlTests
 
 
     [Fact]
-    public void IsEverythingValid()
+    public void TestEverything()
     {
-        (new TestScheduler()).With(sched => {
-
+        (new TestScheduler()).With(sched =>
+        {
             var vm = Create(sched);
             Assert.False(vm.UserNameIsValid);
+            Assert.False(vm.IsPasswordValid);
+            vm.LogTheUserIn
+                .TestCanExecute(sched, false);
+
             vm.UserName = "goodusername";
             vm.Password = "goodpassword";
             sched.AdvanceByMs(2000);
 
+            //All our data is valid
             Assert.True(vm.UserNameIsValid);
             Assert.True(vm.IsPasswordValid);
             Assert.True(vm.IsEverythingValid);
+
+            vm.LogTheUserIn
+              .TestCanExecute(sched, true);
+
+            vm.LogTheUserIn
+                .IsExecuting
+                .DoLog("IsExecuting")
+                .Subscribe();
+
+            vm.LogTheUserIn.Execute().Subscribe(); // execute doesn't execute
+            sched.AdvanceByMs(10); // start execute
+
+            // Can Execute is now false
+            vm.LogTheUserIn
+              .TestCanExecute(sched, false);
+
+            // finish executing
+            sched.AdvanceByMs(3000);
+
+            // now it's true
+            vm.LogTheUserIn
+              .TestCanExecute(sched, true);
+
+
+
+            // Let's execute again
+            vm.LogTheUserIn.Execute().Subscribe();
+            sched.AdvanceByMs(10);
+            vm.LogTheUserIn
+                .TestIsExecuting(sched, true);
+
+            vm.Password = "changed my mind";
+            sched.AdvanceByMs(10);
+            vm.LogTheUserIn
+                .TestIsExecuting(sched, false);
         });
     }
-
-
-
 }

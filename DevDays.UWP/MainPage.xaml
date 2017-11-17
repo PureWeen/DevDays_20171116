@@ -1,0 +1,15 @@
+﻿<Page
+    x:Class="DevDays.UWP.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:DevDays.UWP"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <StackPanel x:Name="mainLayout" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" HorizontalAlignment="Stretch">
+        <Button Width="500" Height="100" FontSize="40" x:Name="btnClick" Content="Click Me 5 More Times" HorizontalAlignment="Center"></Button>
+        <TextBlock TextWrapping="Wrap"   x:Name="lblClicked" FontSize="40" HorizontalAlignment="Center"></TextBlock>
+        <TextBlock x:Name="lblEvents" FontSize="40" HorizontalAlignment="Center"></TextBlock>
+    </StackPanel>
+</Page>
