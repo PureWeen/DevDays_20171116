@@ -152,9 +152,7 @@ namespace DevDays
         }
         #endregion
 
-
-
-
+        #region some Commands
         ReactiveCommand<Unit, bool> _LogTheUserIn;
 
 
@@ -169,7 +167,7 @@ namespace DevDays
                     canExecute: this.WhenAnyValue(x=> x.UserNameIsValid),
                     outputScheduler: _uiScheduler);
         }
-
+        #endregion
 
 
 

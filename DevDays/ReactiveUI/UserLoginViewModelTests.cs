@@ -25,7 +25,6 @@ public class UlTests
     {
         (new TestScheduler()).With(sched =>
         {
-
             var vm = Create(sched);
             sched.AdvanceByMs(500);
             Assert.Equal("initialValue", vm.HaveIBeenPwnedData);
@@ -44,6 +43,7 @@ public class UlTests
             vm.Password = "InvalidPassword";
             sched.AdvanceByMs(100000);
             Assert.Equal("initialValue", vm.HaveIBeenPwnedData);
+            Assert.False(vm.IsPasswordValid);
         });
     }
 

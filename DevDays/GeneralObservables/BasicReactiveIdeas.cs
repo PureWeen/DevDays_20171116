@@ -8,12 +8,17 @@ using System.Reactive.Disposables;
 using System.Reactive.Threading.Tasks;
 using System.Reactive.Linq;
 using System.Reactive;
-
+using ReactiveUI;
 namespace DevDays.GeneralObservables
 {
     public class BasicReactiveIdeas
     {
-        
+
+        GrandParent Gp {get;set;} 
+        class GrandParent
+        {
+            public Parent Parent { get; set; }
+        }
 
         class Parent
         {
@@ -25,6 +30,14 @@ namespace DevDays.GeneralObservables
         {
             public bool HasBeenNice { get; set; }
             public string Name { get; set; }
+        }
+
+
+        [Fact]
+        public void NullReferenceNoMore()
+        {
+            this.WhenAnyValue(x => x.Gp.Parent.Name)
+                .Subscribe();
         }
 
 
