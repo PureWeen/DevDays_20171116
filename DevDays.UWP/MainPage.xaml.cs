@@ -17,6 +17,8 @@ using Windows.UI.Xaml.Navigation;
 using ReactiveUI;
 using DynamicData;
 using System.Reactive.Disposables;
+using System.Collections.ObjectModel;
+using DynamicData.Binding;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -36,6 +38,8 @@ namespace DevDays.UWP
 
             _components.Add(new ViewComponents(spButtonDemo, RadioDemo, SetupButtonClicks()));
             _components.Add(new ViewComponents(lvData,  RadioPosition, SetupPointerMovedSample()));
+            _components.Add(new ViewComponents(DynamicDataFiltering, RadioDDFiltering, SetupFilteringAnimals()));
+
 
 
             this.Events().Loaded
@@ -46,7 +50,7 @@ namespace DevDays.UWP
                     _components
                         .Connect()
                         .DisposeMany()
-                        .MergeMany(x => x.CheckChanged.Where(isTrue => isTrue).Select(__=> x.MyDemo))
+                        .MergeMany(x => x.CheckChanged.IsTrue().Select(__=> x.MyDemo))
                         .Switch()
                         .TakeUntil(this.Events().Unloaded)
 
@@ -55,8 +59,43 @@ namespace DevDays.UWP
                 .Subscribe();
         }
 
-        
 
+
+        ReadOnlyObservableCollection<Animal> filteredAnimals;
+        IObservable<Unit> SetupFilteringAnimals()
+        {
+
+            SourceList<Animal> animalList = Animal.CreateMeSomeAnimalsPlease();
+            var dynamicFilter = 
+                this.WhenAnyValue(x => x.tbFilterText.Text)
+                    .Throttle(TimeSpan.FromMilliseconds(250))
+                    .Select(CreatePredicate);
+
+
+            var returnValue = 
+                animalList
+                   .Connect()
+                   .Filter(dynamicFilter) //accepts any observable
+                   .Sort(SortExpressionComparer<Animal>.Ascending(i => i.Name))
+                   .ObserveOnDispatcher()
+                   .Bind(out filteredAnimals);
+
+            lvFilteredAnimals.ItemsSource = filteredAnimals;
+
+            return returnValue.ToSignal();
+
+
+            Func<Animal, bool> CreatePredicate(string text)
+            {
+                if (text == null || text.Length < 3)
+                    return animal => true;
+
+                
+                return animal => animal.Name.ToLower().Contains(text)
+                                 || animal.Type.ToLower().Contains(text)
+                                 || animal.Family.ToString().ToLower().Contains(text);
+            }
+        }
 
         IObservable<Unit> SetupButtonClicks()
         {

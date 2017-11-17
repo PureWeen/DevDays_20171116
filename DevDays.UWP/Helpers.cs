@@ -46,5 +46,17 @@ namespace DevDays
             return
                 This.Select(_ => Unit.Default);
         }
+
+        public static IObservable<bool> IsTrue(this IObservable<bool> This)
+        {
+            return
+                This.Where(x => x);
+        }
+
+        public static IObservable<bool> IsFalse(this IObservable<bool> This)
+        {
+            return
+                This.Where(x => !x);
+        }
     }
 }
