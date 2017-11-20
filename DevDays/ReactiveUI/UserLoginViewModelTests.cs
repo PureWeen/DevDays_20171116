@@ -156,7 +156,15 @@ public class UlTests
             vm.LogTheUserIn
               .TestCanExecute(sched, true);
 
+            // Subscribe to the commands
+            vm.LogTheUserIn
+                .Where(x=> x == true)
+                .Subscribe(_ => Console.WriteLine("User Logged In"));
 
+            // Watch for exceptionss
+            vm.LogTheUserIn
+                .ThrownExceptions
+                .Subscribe(exc => Console.WriteLine($"{exc}"));
 
             // Let's execute again
             vm.LogTheUserIn.Execute().Subscribe();

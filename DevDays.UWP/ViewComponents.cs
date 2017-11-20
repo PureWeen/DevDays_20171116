@@ -36,9 +36,6 @@ namespace DevDays.UWP
                     .Select(_ => Button.IsChecked ?? false)
                     .Merge(Observable.Return(Button.IsChecked ?? false));
 
-
-
-
             CheckChanged
                 .Subscribe(IsChecked =>
                 {

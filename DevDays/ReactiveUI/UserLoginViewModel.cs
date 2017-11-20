@@ -141,13 +141,18 @@ namespace DevDays
                     .ToProperty(this, x=> x.UserNameIsValid, scheduler:_uiScheduler)
                     .DisposeWith(disposable);
 
-
+            // Immutable Expectations
             _isEverythingValid =
-                this.WhenAnyValue(x => x.HaveIBeenPwnedData, x => x.UserNameIsValid, x => x.IsPasswordValid)
-                    .Select(i => new { pwnedResult = i.Item1, isValid = i.Item2 && i.Item3 })
-                    .Select(result => result.isValid && result.pwnedResult == "not pwned")
-                    .ToProperty(this, x => x.UserNameIsValid, scheduler: _uiScheduler)
-                    .DisposeWith(disposable);
+                this.WhenAnyValue
+                (
+                    x => x.HaveIBeenPwnedData, 
+                    x => x.UserNameIsValid, 
+                    x => x.IsPasswordValid
+                )
+                .Select(i => new { pwnedResult = i.Item1, isValid = i.Item2 && i.Item3 })
+                .Select(result => result.isValid && result.pwnedResult == "not pwned")
+                .ToProperty(this, x => x.UserNameIsValid, scheduler: _uiScheduler)
+                .DisposeWith(disposable);
                 
         }
         #endregion

@@ -1,11 +1,16 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27004.2008
+VisualStudioVersion = 15.0.27004.2009
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DevDays", "DevDays\DevDays.csproj", "{99892367-52F5-482D-A3D3-D84C274602F1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DevDays", "DevDays\DevDays.csproj", "{99892367-52F5-482D-A3D3-D84C274602F1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DevDays.UWP", "DevDays.UWP\DevDays.UWP.csproj", "{BB866FCE-B50B-46BE-92FC-D4CC19D4F8BA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Slides", "Slides", "{888C474B-6E40-4AD8-AE30-CAF8A5A1B170}"
+	ProjectSection(SolutionItems) = preProject
+		DenverDevDays20171116.pptx = DenverDevDays20171116.pptx
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

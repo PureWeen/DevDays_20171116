@@ -85,16 +85,17 @@ namespace DevDays.UWP
             var returnValue =
                 animalList
                    .Connect()
-                   .Filter(dynamicFilter) //accepts any observable
+                   .Filter(dynamicFilter) // accepts any observable
                    .Sort(dynamicSort)
                    .ObserveOnDispatcher()
+                   // side effect
                    .Bind(out filteredAnimals)
                    .Publish();
 
             returnValue.Connect();
             
 
-            //Create filtered source to watch for changes on
+            // Create filtered source to watch for changes on
             var filteredAnimalsChanged = 
                 filteredAnimals
                     .ToObservableChangeSet()
@@ -162,17 +163,19 @@ namespace DevDays.UWP
 
         IObservable<Unit> SetupPointerMovedSample()
         {
-            this.Events().PointerPressed
-                    .Select(_ => this.Events().PointerMoved
-                            .TakeUntil(this.Events().PointerReleased)
-                    )
-                    .ToList();  //flatten list;
+            //this.Events().PointerPressed
+            //        .Select(_ => this.Events().PointerMoved
+            //                .TakeUntil(this.Events().PointerReleased)
+            //        )
+            //        .ToList();  //flatten list;
 
+
+            
 
             return
                 this.Events()
                     .PointerPressed.Do(_ => lblEvents.Text = "Pressed")
-                    .Select
+                    .SelectMany
                     (_ =>
                         this.Events().PointerMoved.Do(__ => lblEvents.Text = "PointerMoved")
                             .Select(args => args.GetCurrentPoint(this))
@@ -181,7 +184,7 @@ namespace DevDays.UWP
                             )
                             .ToList()
                     )
-                    .Switch()
+                   // .Switch()
                     //Transform
                     .Select(args => args.Select(x => $"{Math.Round(x.Position.X, 2)}, {Math.Round(x.Position.Y, 2)}").ToArray())
                     .Do(data => lvData.ItemsSource = data)
