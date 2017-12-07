@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name">DevDays.Android</string>
+  <string name="UserDetailsIntentKey">UserDetailsIntentKey</string>
+  <string name="Save">Save</string>
+  <string name="UserName">UserName</string>
+  <string name="Password">Password</string>
+  <string name="UserNameIsInvalid">Please Enter User Name</string>
+  <string name="UserNameIsUnique">Please Enter a Unique User Name</string>
+  <string name="PasswordIsInvalid">Please Enter a More Secure Password</string>
+</resources>
