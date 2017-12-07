@@ -35,10 +35,6 @@ namespace DevDays
             
             RxApp.DefaultExceptionHandler = Observer.Create<Exception>(ex =>
             {
-                // NB: If you're seeing this, it means that an
-                // ObservableAsPropertyHelper or the CanExecute of a
-                // ReactiveCommand ended in an OnError. Instead of silently
-                // breaking, ReactiveUI will halt here if a debugger is attached.
                 if (Debugger.IsAttached)
                 {
                     Debugger.Break();

@@ -4,6 +4,7 @@ using DevDays.ViewModels;
 using ReactiveUI;
 using UIKit;
 using System.Reactive.Disposables;
+using System.Linq;
 
 namespace DevDays.iOS
 {
@@ -27,6 +28,7 @@ namespace DevDays.iOS
         {
             base.ViewDidLoad();
 
+            Password.SecureTextEntry = true;
             this.OneWayBind(ViewModel, x => x, x => x.UserDetailsView.ViewModel)
                 .DisposeWith(disposable);
             
@@ -35,7 +37,14 @@ namespace DevDays.iOS
              
             this.WhenAnyObservable(v => v.ViewModel.GoBackWithResult)
                 .Subscribe(results =>
-                { 
+                {
+                    NavigationController
+                        .ChildViewControllers
+                        .OfType<UserListViewController>()
+                        .First()
+                        .ViewModel
+                        .AddOrUpdate(results);
+
                     NavigationController.PopViewController(true);
                 })
                 .DisposeWith(disposable);
