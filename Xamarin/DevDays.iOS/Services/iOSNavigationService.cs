@@ -25,9 +25,29 @@ namespace DevDays.iOS.Services
         {
             UIStoryboard board = UIStoryboard.FromName ("Main", null);
             UserDetailsViewController ctrl = (UserDetailsViewController)board.InstantiateViewController ("UserDetailsView");
-            UIApplication.SharedApplication.KeyWindow.RootViewController.NavigationController.PushViewController (ctrl, true);
+            GetNavigationController().PushViewController (ctrl, true);
             ctrl.ViewModel = DevDays.iOS.Application.CompositionRoot.CreateUserDetailsViewModel(model.Clone());
             return Observable.Return(Unit.Default);
+        }
+
+        UIViewController GetPresentedController()
+        {
+            var window = UIApplication.SharedApplication.KeyWindow;
+            var vc = window.RootViewController;
+            while (vc.PresentedViewController != null)
+                vc = vc.PresentedViewController;
+
+            return vc;
+        }
+
+        UINavigationController GetNavigationController()
+        {
+            var vc = GetPresentedController();
+            var navController = vc as UINavigationController;
+            if (navController != null)
+                vc = navController.ViewControllers.Last();
+
+            return navController;
         }
     }
 }

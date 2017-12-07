@@ -102,10 +102,7 @@ namespace DevDays.ViewModels
                         .Edit(innerList =>
                         {
                             innerList.Clear();
-                            innerList.AddRange(users.Select(_userDetailsViewModelFactory));
-
-
-                            innerList.Add(_userDetailsViewModelFactory(new UserModel() {Id = "id", UserName = "BOB"}));
+                            innerList.AddRange(users.Select(_userDetailsViewModelFactory)); 
                         });
                 });
         }

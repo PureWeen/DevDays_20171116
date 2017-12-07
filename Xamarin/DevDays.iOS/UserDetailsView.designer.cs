@@ -11,19 +11,11 @@ using UIKit;
 
 namespace DevDays.iOS
 {
-    [Register ("UserDetailsViewCell")]
-    partial class UserDetailsViewCell
+    [Register ("UserDetailsView")]
+    partial class UserDetailsView
     {
-        [Outlet]
-        [GeneratedCode ("iOS Designer", "1.0")]
-        UIKit.UILabel lblUserName { get; set; }
-
         void ReleaseDesignerOutlets ()
         {
-            if (lblUserName != null) {
-                lblUserName.Dispose ();
-                lblUserName = null;
-            }
         }
     }
 }
