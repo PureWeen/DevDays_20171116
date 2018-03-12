@@ -26,6 +26,10 @@ namespace RxPresentation
                 () =>
                 {
                     Debug.WriteLine($"Completed-{whoAmI}");
+                })
+                .Finally(() =>
+                {
+                    Debug.WriteLine($"Finally-{whoAmI}");
                 });
         }
     }

@@ -13,9 +13,9 @@ using System.Reactive;
 public class UlTests
 {
 
-    UserLoginViewModel Create(IScheduler scheduler)
+    UserLoginViewModelReactive Create(IScheduler scheduler)
     {
-        return new UserLoginViewModel(backgroundScheduler: scheduler, uiScheduler: scheduler);
+        return new UserLoginViewModelReactive(backgroundScheduler: scheduler, uiScheduler: scheduler);
     }
 
 

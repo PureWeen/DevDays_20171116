@@ -13,7 +13,7 @@ namespace RxPresentation
 		{
 			InitializeComponent();
 
-			MainPage = new RxPresentation.MainPage();
+			MainPage = new RxPresentation.UserLoginView();
 		}
 
 		protected override void OnStart ()
