@@ -20,6 +20,8 @@ using System.Reactive.Disposables;
 using System.Collections.ObjectModel;
 using DynamicData.Binding;
 using DynamicData.Aggregation;
+using System.Threading;
+using Xam.Reactive.Concurrency;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -40,14 +42,13 @@ namespace DevDays.UWP
             _components.Add(new ViewComponents(spButtonDemo, RadioDemo, SetupButtonClicks()));
             _components.Add(new ViewComponents(lvData,  RadioPosition, SetupPointerMovedSample()));
             _components.Add(new ViewComponents(DynamicDataFiltering, RadioDDFiltering, SetupFilteringAnimals()));
+            _components.Add(new ViewComponents(spMovingBlock, RadioMovingBlock, SetupMovingBlock()));
 
 
 
             this.Events().Loaded
                 .Select
                 (_=> 
-
-
                     _components
                         .Connect()
                         .DisposeMany()
@@ -60,7 +61,43 @@ namespace DevDays.UWP
                 .Subscribe();
         }
 
+        private IObservable<Unit> SetupMovingBlock()
+        {
+            int touchCount = 0;
+            return 
+                this.Events().PointerMoved
+                    .GroupBy(x => x.Pointer.PointerId)
+                    .SelectMany(groups =>
+                    {
+                        var closureCount = Interlocked.Increment(ref touchCount);
+                        var refCount = groups.Publish().RefCount(); 
+                        var startingBounds = spBLock.DesiredSize; 
 
+                        return refCount
+                                .TakeUntil(this.Events().PointerReleased.Where(pr=> pr.Pointer.PointerId == groups.Key))
+                                .Select(result => new { Bounds = startingBounds, TouchNumber = closureCount, result })
+                                .Finally(() => Interlocked.Decrement(ref touchCount));
+
+                    })
+                    .ObserveOn(XamarinDispatcherScheduler.Current)
+                    .Do(data =>
+                    {
+                        var point = data.result.GetCurrentPoint(this);
+                        if (data.TouchNumber == 1)
+                        {
+                            Canvas.SetLeft(spBLock, point.Position.X);
+                            Canvas.SetTop(spBLock, point.Position.Y);
+                        }
+                        else if (data.TouchNumber == 2)
+                        {
+                            spBLock.Width = point.Position.X;
+                            spBLock.Height = point.Position.Y;
+
+                        }
+                    })
+                    .Select(_=> Unit.Default); 
+
+        }
 
         IObservable<Unit> SetupFilteringAnimals()
         {
@@ -162,16 +199,7 @@ namespace DevDays.UWP
 
 
         IObservable<Unit> SetupPointerMovedSample()
-        {
-            //this.Events().PointerPressed
-            //        .Select(_ => this.Events().PointerMoved
-            //                .TakeUntil(this.Events().PointerReleased)
-            //        )
-            //        .ToList();  //flatten list;
-
-
-            
-
+        { 
             return
                 this.Events()
                     .PointerPressed.Do(_ => lblEvents.Text = "Pressed")

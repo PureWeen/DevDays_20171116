@@ -142,6 +142,9 @@
     <PackageReference Include="ReactiveUI.Events">
       <Version>8.0.0-alpha0117</Version>
     </PackageReference>
+    <PackageReference Include="Xam.Reactive.DispatchScheduler">
+      <Version>1.0.0-beta0003</Version>
+    </PackageReference>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>

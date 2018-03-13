@@ -14,6 +14,7 @@
                     <RadioButton IsChecked="True" x:Name="RadioDemo" Content="Button Demo" GroupName="Group"></RadioButton>
                     <RadioButton x:Name="RadioPosition" Content="Position Demo" GroupName="Group"></RadioButton>
                     <RadioButton x:Name="RadioDDFiltering" Content="Filtering" GroupName="Group"></RadioButton>
+                    <RadioButton x:Name="RadioMovingBlock" Content="Moving Block" GroupName="Group"></RadioButton>
                 </StackPanel>
             </Viewbox>
         </StackPanel>
@@ -51,6 +52,11 @@
                 </ListView.ItemTemplate>
             </ListView>
         </StackPanel>
-
+        
+        <Canvas Visibility="Collapsed" x:Name="spMovingBlock">
+            <StackPanel x:Name="spBLock"  Background="Red" Height="80" Width="80">
+                
+            </StackPanel>
+        </Canvas>
     </StackPanel>
 </Page>
