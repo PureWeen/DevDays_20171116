@@ -37,7 +37,11 @@ namespace RxPresentation
             //        x => tbUserName.TextChanged += x,
             //        x => tbUserName.TextChanged -= x
             //    )
-            //    .Subscribe(sub => { });
+            //    .Take(1)
+            //    .Subscribe(sub => { })
+            //    .DisposeWith(disposable);
+
+            ////and
 
             //tbUserName.Events().TextChanged
             //    .Subscribe(sub => { });
