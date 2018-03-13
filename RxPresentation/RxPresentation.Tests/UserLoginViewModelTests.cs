@@ -10,12 +10,12 @@ using System.Threading.Tasks;
 using Xunit;
 using System.Reactive;
 
-public class UlTests
+public class UserLoginViewModelRxUITests
 {
 
-    UserLoginViewModelReactive Create(IScheduler scheduler)
+    UserLoginViewModelRxUIComplex Create(IScheduler scheduler)
     {
-        return new UserLoginViewModelReactive(backgroundScheduler: scheduler, uiScheduler: scheduler);
+        return new UserLoginViewModelRxUIComplex(backgroundScheduler: scheduler, uiScheduler: scheduler);
     }
 
 

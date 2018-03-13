@@ -1,184 +1,253 @@
-﻿using ReactiveUI;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Reactive;
+using System.ComponentModel;
+using System.IO;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using System.Text;
-using System.Windows.Input;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Linq;
+using Xamarin.Forms;
 
 namespace RxPresentation
 {
-    public class UserLoginViewModelReactive : ReactiveObject, IDisposable
+    public class UserLoginViewModelReactive : INotifyPropertyChanged
     {
-
         IScheduler _backgroundScheduler;
         IScheduler _uiScheduler;
         CompositeDisposable disposable = new CompositeDisposable();
+        string _Password;
+        string _UserName;
+        private IReadOnlyList<string> _searchTerms;
+        SerialDisposable serialDisposable = new SerialDisposable();
+        public event PropertyChangedEventHandler PropertyChanged;
+        List<string> _words = null;
+        private int _notifications;
+        private int _filterStarted;
+        private string _selectedObservable;
+        private bool _isValid;
 
         public UserLoginViewModelReactive(IScheduler backgroundScheduler, IScheduler uiScheduler)
         {
             _backgroundScheduler = backgroundScheduler;
             _uiScheduler = uiScheduler;
+            ReadFileIn();
+            PasswordChangeObservable();
+            SetupObservablePicker();
 
-            SetupPasswordObervables();
-            SetupValidationLogic();
-            SetupCommands();
+
+            LoginCommand = new Command(() => { }, () => IsValid);
         }
 
-
-        #region password
-        void SetupPasswordObervables()
+        public void BasicChangeObservable()
         {
-            _isPasswordValid =
-                this.WhenAnyValue(x => x.Password)
-                    .Select(password => !String.IsNullOrWhiteSpace(password) && !password.Contains("InvalidPassword"))
-                    .ToProperty(this, x => x.IsPasswordValid, scheduler: _uiScheduler, initialValue:false)
-                    .DisposeWith(disposable);
-
-
-
-            var resetHaveIBeenPwned =
-                PasswordChanged.Select(_ => "initialValue");
-
-            _HaveIBeenPwnedData =
-                PasswordChangedAndIsValid
-                   .Throttle(TimeSpan.FromMilliseconds(500), scheduler: _backgroundScheduler)
-                   .Select(password => HaveIBeenPwnedFakeServerCall(password).TakeUntil(PasswordChanged.Skip(1)))
-                   .Switch()
-                   .Merge(resetHaveIBeenPwned)
-                   .ToProperty(this, x => x.HaveIBeenPwnedData, scheduler: _uiScheduler, initialValue: "initialValue")
-                   .DisposeWith(disposable);
-
+            ResetCounters();
+            serialDisposable.Disposable =
+                UserNameChanged
+                    .SelectMany(result => FilterList(_words, result))
+                    .Catch((TimeoutException exc) => Observable.Return(new List<string> { exc.Message }))
+                    .Repeat()
+                    .ObserveOn(_uiScheduler)
+                    .Subscribe(OnHandleInputList);
         }
+
+        public void ThrowAwayResults()
+        {
+            ResetCounters();
+            serialDisposable.Disposable =
+                UserNameChanged
+                    .Select(result => FilterList(_words, result))
+                    .Switch()
+                    .Catch((TimeoutException exc)=> Observable.Return(new List<string> { exc.Message }) )
+                    .Repeat()
+                    .ObserveOn(_uiScheduler)
+                    .Subscribe(OnHandleInputList);
+        }
+
+        public void DebounceObservable()
+        {
+            ResetCounters();
+            serialDisposable.Disposable =
+                UserNameChanged
+                    .Throttle(TimeSpan.FromSeconds(1), scheduler: _backgroundScheduler)
+                    .SelectMany(result => FilterList(_words, result))
+                    .Catch((TimeoutException exc) => Observable.Return(new List<string> { exc.Message }))
+                    .Repeat()
+                    .ObserveOn(_uiScheduler)
+                    .Subscribe(OnHandleInputList);
+        }
+
+        void OnHandleInputList(IReadOnlyList<string> inputList)
+        {
+            Notifications++;
+            SearchTerms = inputList;
+        }
+
+
+        private void SetupObservablePicker()
+        {
+            SelectedObservableChanged
+                .StartWith(nameof(BasicChangeObservable))
+                .Subscribe(selected =>
+                {
+                    switch (selected)
+                    {
+                        case nameof(BasicChangeObservable):
+                            BasicChangeObservable();
+                            break;
+                        case nameof(DebounceObservable):
+                            DebounceObservable();
+                            break;
+                        case nameof(ThrowAwayResults):
+                            ThrowAwayResults();
+                            break;
+                    }
+                });
+        }
+
+        Random randomGenerator = new Random();
+        IObservable<IReadOnlyList<string>> FilterList(IReadOnlyList<string> inputList, string filter)
+        {
+            FilterStarted++;
+
+            if (String.IsNullOrWhiteSpace(filter))
+                return Observable.Return(new List<string>());
+            // delay simulates a lookup or just a general time wait
+            return Observable.Timer(TimeSpan.FromSeconds(1), scheduler: _backgroundScheduler)
+                .SelectMany(_ =>
+                {
+                    if(randomGenerator.Next(0, 10) == 3)
+                    {
+                        return Observable.Throw<List<string>>(new TimeoutException("Internet is down panic"));
+                    }
+
+                    return Observable.Return(inputList.Where(word => word.StartsWith(filter)).ToList());
+                });
+        }
+
+
+        void ResetCounters()
+        {
+            Notifications = 0;
+            FilterStarted = 0;
+        }
+
+        public IObservable<T> GetPropertyChangedObservable<T>(string propertyName, Func<T> propFunc) =>
+            Observable.FromEventPattern<PropertyChangedEventHandler, PropertyChangedEventArgs>
+            (
+                x => this.PropertyChanged += x,
+                x => this.PropertyChanged -= x
+            )
+            .Where(x => x.EventArgs.PropertyName == propertyName)
+            .Select(_ => propFunc());
+
+
+        public IObservable<string> UserNameChanged =>
+           GetPropertyChangedObservable(nameof(UserName), () => UserName);
 
         public IObservable<string> PasswordChanged =>
-            this.WhenAnyValue(x => x.Password);
+            GetPropertyChangedObservable(nameof(Password), () => Password);
+
+        public IObservable<string> SelectedObservableChanged =>
+            GetPropertyChangedObservable(nameof(SelectedObservable), () => SelectedObservable);
 
 
-        public IObservable<string> PasswordChangedAndIsValid =>
-           this.WhenAnyValue(x => x.Password, x => x.IsPasswordValid)
-                   .Select(e => new { password = e.Item1, isValid = e.Item2 })
-                   .Where(e => e.isValid) //check validation
-                   .Select(e => e.password); //select the password
-
-
-        string _Password;
         public string Password
         {
             get => _Password;
             set => this.RaiseAndSetIfChanged(ref _Password, value);
         }
 
-
-        ObservableAsPropertyHelper<string> _HaveIBeenPwnedData;
-        public string HaveIBeenPwnedData
-        {
-            get
-            {
-                return _HaveIBeenPwnedData.Value;
-            }
-        }
-
-        ObservableAsPropertyHelper<bool> _isPasswordValid;
-        public bool IsPasswordValid
-        {
-            get
-            {
-                return _isPasswordValid.Value;
-            }
-        }
-
-
-
-        public IObservable<string> HaveIBeenPwnedFakeServerCall(string data)
-        {
-            return
-                    Observable
-                        .Timer(TimeSpan.FromMilliseconds(1000), scheduler: _backgroundScheduler)
-                        .Select(_ => data == "password" ? "pwned" : "not pwned");
-        }
-        #endregion
-
-        #region validate UserNames
-
-
-
-        string _UserName;
         public string UserName
         {
             get => _UserName;
             set => this.RaiseAndSetIfChanged(ref _UserName, value);
         }
 
-
-
-        ObservableAsPropertyHelper<bool> _UserNameIsValid;
-        public bool UserNameIsValid
+        public int Notifications
         {
-            get
-            {
-                return _UserNameIsValid.Value;
-            }
+            get => _notifications;
+            set => this.RaiseAndSetIfChanged(ref _notifications, value);
         }
 
-        ObservableAsPropertyHelper<bool> _isEverythingValid;
-        public bool IsEverythingValid
+        public int FilterStarted
         {
-            get
-            {
-                return _isEverythingValid.Value;
-            }
+            get => _filterStarted;
+            set => this.RaiseAndSetIfChanged(ref _filterStarted, value);
         }
 
-        void SetupValidationLogic()
+        public string SelectedObservable
         {
-            _UserNameIsValid =
-                this.WhenAnyValue(x => x.UserName)
-                    .Select(userName => UserName == "goodusername")
-                    .ToProperty(this, x=> x.UserNameIsValid, scheduler:_uiScheduler)
-                    .DisposeWith(disposable);
-
-            // Immutable Expectations
-            _isEverythingValid =
-                this.WhenAnyValue
-                (
-                    x => x.HaveIBeenPwnedData, 
-                    x => x.UserNameIsValid, 
-                    x => x.IsPasswordValid
-                )
-                .Select(i => new { pwnedResult = i.Item1, isValid = i.Item2 && i.Item3 })
-                .Select(result => result.isValid && result.pwnedResult == "not pwned")
-                .ToProperty(this, x => x.UserNameIsValid, scheduler: _uiScheduler)
-                .DisposeWith(disposable);
-                
+            get => _selectedObservable;
+            set => this.RaiseAndSetIfChanged(ref _selectedObservable, value);
         }
-        #endregion
 
-        #region some Commands
-        ReactiveCommand<Unit, bool> _LogTheUserIn;
-
-
-        public ReactiveCommand<Unit, bool> LogTheUserIn => _LogTheUserIn;  
-        private void SetupCommands()
+        public IReadOnlyList<string> SearchTerms
         {
-            _LogTheUserIn = 
-                ReactiveCommand.CreateFromObservable(
-                    () =>  Observable.Timer(TimeSpan.FromMilliseconds(2000), _backgroundScheduler)
-                            .TakeUntil(PasswordChanged.Skip(1))
-                            .Select(_ => true),
-                    canExecute: this.WhenAnyValue(x=> x.UserNameIsValid),
-                    outputScheduler: _uiScheduler);
+            get => _searchTerms;
+            set => this.RaiseAndSetIfChanged(ref _searchTerms, value);
         }
-        #endregion
 
+        public bool IsValid
+        {
+            get => _isValid;
+            set => this.RaiseAndSetIfChanged(ref _isValid, value);
+        }
+        public Command LoginCommand { get; }
 
+        public void RaiseAndSetIfChanged<T>(ref T input, T newValue, [CallerMemberName]string propertyName = "")
+        {
+            if (Object.Equals(input, newValue)) return;
+            input = newValue;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
 
         public void Dispose()
         {
             disposable.Dispose();
+        }
+
+
+        void ReadFileIn()
+        {
+
+            var assembly = typeof(UserLoginViewModelReactive).GetTypeInfo().Assembly;
+            Stream stream = assembly.GetManifestResourceStream("RxPresentation.Words.txt");
+            _words = new List<string>();
+            using (var reader = new System.IO.StreamReader(stream))
+            {
+                while (!reader.EndOfStream)
+                    _words.Add(reader.ReadLine());
+            }
+        }
+
+
+
+        void PasswordChangeObservable()
+        {
+            Notifications = 0;
+            PasswordChanged
+                .SelectMany(result => FilterList(_words, result))
+                .Select(results => results.Select(result => Enumerable.Range(1, result.Length).Select(x => "*").ToArray()))
+                .Select(arrays => arrays.Select(array => String.Join("", array)).ToList())
+                .Subscribe(OnHandleInputList);
+
+
+            Observable.CombineLatest(UserNameChanged, PasswordChanged,
+                (username, password) =>
+                {
+                    if (String.IsNullOrWhiteSpace(username) || String.IsNullOrWhiteSpace(password))
+                        return false;
+
+                    return password.Length > 5;
+                })
+                .StartWith(false)
+                .Subscribe(isValid =>
+                {
+                    IsValid = isValid;
+                    LoginCommand?.ChangeCanExecute();
+                });
         }
     }
 }
