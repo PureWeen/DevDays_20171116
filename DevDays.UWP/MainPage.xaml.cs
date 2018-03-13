@@ -45,7 +45,7 @@ namespace DevDays.UWP
             _components.Add(new ViewComponents(spMovingBlock, RadioMovingBlock, SetupMovingBlock()));
 
 
-
+            // RxUI exposes all platform events
             this.Events().Loaded
                 .Select
                 (_=> 

@@ -16,11 +16,11 @@ namespace RxPresentation
     public class UserLoginViewModelRxUI : ReactiveObject
     {
         IScheduler _backgroundScheduler;
-        IScheduler _uiScheduler; 
+        IScheduler _uiScheduler;
         string _Password;
         string _UserName;
         private IReadOnlyList<string> _searchTerms;
-        SerialDisposable serialDisposable = new SerialDisposable(); 
+        SerialDisposable serialDisposable = new SerialDisposable();
         List<string> _words = null;
         private string _selectedObservable;
         private ObservableAsPropertyHelper<bool> _isValid;
@@ -29,7 +29,7 @@ namespace RxPresentation
 
         public UserLoginViewModelRxUI(IScheduler backgroundScheduler, IScheduler uiScheduler)
         {
-            // Layer is null
+            // Layer is null but I can still define these 
             this.WhenAnyValue(x => x.Layer.Notifications)
                 .ToProperty(this, vm => vm.Notifications, out _notifications);
 
@@ -43,20 +43,55 @@ namespace RxPresentation
             _uiScheduler = uiScheduler;
             ReadFileIn();
             PasswordChangeObservable();
+
+            // Attach IsValid to immutable IsValid property
+            //Ensures this is the only source of truth for the property
+            _isValid =
+                this.WhenAnyValue(x => x.UserName, x => x.Password,
+                    (username, password) =>
+                    {
+                        if (String.IsNullOrWhiteSpace(username) || String.IsNullOrWhiteSpace(password))
+                            return false;
+
+                        return password.Length > 5;
+                    })
+                    .ToProperty(this, vm => vm.IsValid, initialValue: false);
+
+
             SetupObservablePicker();
 
             // Command that can be interact with in an observable way
+            // just listens for changes to isvalid opposed to us having to push
             LoginCommand = ReactiveCommand<Unit, Unit>.Create(() => { },
-                canExecute: this.WhenAnyValue(x=> x.IsValid));
+                canExecute: this.WhenAnyValue(x => x.IsValid));
 
             LoginCommand
                 .Subscribe(valueProducedByExecute => { });
 
             LoginCommand
                 .IsExecuting.Subscribe(isExecuting => { });
-
-
         }
+
+        public IObservable<string> UserNameChanged =>
+           this.WhenAnyValue(x => x.UserName);
+
+        public IObservable<string> PasswordChanged =>
+           this.WhenAnyValue(x => x.Password);
+
+        public IObservable<string> SelectedObservableChanged =>
+           this.WhenAnyValue(x => x.SelectedObservable);
+
+        void PasswordChangeObservable()
+        {
+            Layer.Notifications = 0;
+            PasswordChanged
+                .SelectMany(result => FilterList(_words, result))
+                .Select(results => results.Select(result => Enumerable.Range(1, result.Length).Select(x => "*").ToArray()))
+                .Select(arrays => arrays.Select(array => String.Join("", array)).ToList())
+                .Subscribe(OnHandleInputList);
+        }
+
+
 
         public void BasicChangeObservable()
         {
@@ -77,7 +112,7 @@ namespace RxPresentation
                 UserNameChanged
                     .Select(result => FilterList(_words, result))
                     .Switch()
-                    .Catch((TimeoutException exc)=> Observable.Return(new List<string> { exc.Message }) )
+                    .Catch((TimeoutException exc) => Observable.Return(new List<string> { exc.Message }))
                     .Repeat()
                     .ObserveOn(_uiScheduler)
                     .Subscribe(OnHandleInputList);
@@ -139,7 +174,7 @@ namespace RxPresentation
             return Observable.Timer(TimeSpan.FromSeconds(1), scheduler: _backgroundScheduler)
                 .SelectMany(_ =>
                 {
-                    if(randomGenerator.Next(0, 10) == 3)
+                    if (randomGenerator.Next(0, 10) == 3)
                     {
                         return Observable.Throw<List<string>>(new TimeoutException("Internet is down panic"));
                     }
@@ -156,14 +191,6 @@ namespace RxPresentation
         }
 
 
-        public IObservable<string> UserNameChanged =>
-           this.WhenAnyValue(x => x.UserName);
-
-        public IObservable<string> PasswordChanged =>
-           this.WhenAnyValue(x => x.Password);
-
-        public IObservable<string> SelectedObservableChanged =>
-           this.WhenAnyValue(x => x.SelectedObservable);
 
 
         public string Password
@@ -212,26 +239,7 @@ namespace RxPresentation
 
         public ReactiveCommand<Unit, Unit> LoginCommand { get; }
 
-        void PasswordChangeObservable()
-        {
-            Layer.Notifications = 0;
-            PasswordChanged
-                .SelectMany(result => FilterList(_words, result))
-                .Select(results => results.Select(result => Enumerable.Range(1, result.Length).Select(x => "*").ToArray()))
-                .Select(arrays => arrays.Select(array => String.Join("", array)).ToList())
-                .Subscribe(OnHandleInputList);
 
-            _isValid = 
-                this.WhenAnyValue(x => x.UserName, x => x.Password,
-                    (username, password) =>
-                    {
-                        if (String.IsNullOrWhiteSpace(username) || String.IsNullOrWhiteSpace(password))
-                            return false;
-
-                        return password.Length > 5;
-                    })
-                    .ToProperty(this, vm => vm.IsValid, initialValue: false);
-        }
 
 
 

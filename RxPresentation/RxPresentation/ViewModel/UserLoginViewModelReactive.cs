@@ -25,7 +25,7 @@ namespace RxPresentation
         List<string> _words = null;
         private int _notifications;
         private int _filterStarted;
-        private string _selectedObservable;
+        private string _selectedObservable = nameof(BasicChangeObservable);
         private bool _isValid;
 
         public UserLoginViewModelReactive(IScheduler backgroundScheduler, IScheduler uiScheduler)
@@ -35,124 +35,10 @@ namespace RxPresentation
             ReadFileIn();
             PasswordChangeObservable();
             SetupObservablePicker();
-
-
             LoginCommand = new Command(() => { }, () => IsValid);
         }
 
-        public void BasicChangeObservable()
-        {
-            ResetCounters();
-            serialDisposable.Disposable =
-                UserNameChanged
-                    .SelectMany(result => FilterList(_words, result))
-                    .Catch((TimeoutException exc) => Observable.Return(new List<string> { exc.Message }))
-                    .Repeat()
-                    .ObserveOn(_uiScheduler)
-                    .Subscribe(OnHandleInputList);
-        }
-
-        public void ThrowAwayResults()
-        {
-            ResetCounters();
-            serialDisposable.Disposable =
-                UserNameChanged
-                    .Select(result => FilterList(_words, result))
-                    .Switch()
-                    .Catch((TimeoutException exc)=> Observable.Return(new List<string> { exc.Message }) )
-                    .Repeat()
-                    .ObserveOn(_uiScheduler)
-                    .Subscribe(OnHandleInputList);
-        }
-
-        public void DebounceObservable()
-        {
-            ResetCounters();
-            serialDisposable.Disposable =
-                UserNameChanged
-                    .Throttle(TimeSpan.FromSeconds(1), scheduler: _backgroundScheduler)
-                    .SelectMany(result => FilterList(_words, result))
-                    .Catch((TimeoutException exc) => Observable.Return(new List<string> { exc.Message }))
-                    .Repeat()
-                    .ObserveOn(_uiScheduler)
-                    .Subscribe(OnHandleInputList);
-        }
-
-        void OnHandleInputList(IReadOnlyList<string> inputList)
-        {
-            Notifications++;
-            SearchTerms = inputList;
-        }
-
-
-        private void SetupObservablePicker()
-        {
-            SelectedObservableChanged
-                .StartWith(nameof(BasicChangeObservable))
-                .Subscribe(selected =>
-                {
-                    switch (selected)
-                    {
-                        case nameof(BasicChangeObservable):
-                            BasicChangeObservable();
-                            break;
-                        case nameof(DebounceObservable):
-                            DebounceObservable();
-                            break;
-                        case nameof(ThrowAwayResults):
-                            ThrowAwayResults();
-                            break;
-                    }
-                });
-        }
-
-        Random randomGenerator = new Random();
-        IObservable<IReadOnlyList<string>> FilterList(IReadOnlyList<string> inputList, string filter)
-        {
-            FilterStarted++;
-
-            if (String.IsNullOrWhiteSpace(filter))
-                return Observable.Return(new List<string>());
-            // delay simulates a lookup or just a general time wait
-            return Observable.Timer(TimeSpan.FromSeconds(1), scheduler: _backgroundScheduler)
-                .SelectMany(_ =>
-                {
-                    if(randomGenerator.Next(0, 10) == 3)
-                    {
-                        return Observable.Throw<List<string>>(new TimeoutException("Internet is down panic"));
-                    }
-
-                    return Observable.Return(inputList.Where(word => word.StartsWith(filter)).ToList());
-                });
-        }
-
-
-        void ResetCounters()
-        {
-            Notifications = 0;
-            FilterStarted = 0;
-        }
-
-        public IObservable<T> GetPropertyChangedObservable<T>(string propertyName, Func<T> propFunc) =>
-            Observable.FromEventPattern<PropertyChangedEventHandler, PropertyChangedEventArgs>
-            (
-                x => this.PropertyChanged += x,
-                x => this.PropertyChanged -= x
-            )
-            .Where(x => x.EventArgs.PropertyName == propertyName)
-            .Select(_ => propFunc());
-
-
-        public IObservable<string> UserNameChanged =>
-           GetPropertyChangedObservable(nameof(UserName), () => UserName);
-
-        public IObservable<string> PasswordChanged =>
-            GetPropertyChangedObservable(nameof(Password), () => Password);
-
-        public IObservable<string> SelectedObservableChanged =>
-            GetPropertyChangedObservable(nameof(SelectedObservable), () => SelectedObservable);
-
-
+        // our Properties that we bind to
         public string Password
         {
             get => _Password;
@@ -196,6 +82,7 @@ namespace RxPresentation
         }
         public Command LoginCommand { get; }
 
+        // our lazy implementation for raising changes when things change
         public void RaiseAndSetIfChanged<T>(ref T input, T newValue, [CallerMemberName]string propertyName = "")
         {
             if (Object.Equals(input, newValue)) return;
@@ -203,11 +90,137 @@ namespace RxPresentation
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
+
+
+
+        Random randomGenerator = new Random();
+        //processes inputs
+        IObservable<IReadOnlyList<string>> FilterList(IReadOnlyList<string> inputList, string filter)
+        {
+            FilterStarted++;
+
+            // influence the stream easily
+            if (String.IsNullOrWhiteSpace(filter))
+                return Observable.Return(new List<string>());
+
+            // delay simulates a lookup or just a general time wait
+            return Observable.Timer(TimeSpan.FromSeconds(1), scheduler: _backgroundScheduler)
+                .SelectMany(_ =>
+                {
+                    if (randomGenerator.Next(0, 10) == 3)
+                    {
+                        return Observable.Throw<List<string>>(new TimeoutException("Internet is down panic"));
+                    }
+
+                    return Observable.Return(inputList.Where(word => word.StartsWith(filter)).ToList());
+                });
+        }
+
+        // handles subscription notification
+        void OnHandleInputList(IReadOnlyList<string> inputList)
+        {
+            Notifications++;
+            SearchTerms = inputList;
+        }
+
+
+
+        // wiring events to notify property changes
+        public IObservable<T> GetPropertyChangedObservable<T>(string propertyName, Func<T> propFunc) =>
+            Observable.FromEventPattern<PropertyChangedEventHandler, PropertyChangedEventArgs>
+            (
+                x => this.PropertyChanged += x,
+                x => this.PropertyChanged -= x
+            )
+            .Where(x => x.EventArgs.PropertyName == propertyName)
+            .Select(_ => propFunc());
+
+        public IObservable<string> UserNameChanged =>
+           GetPropertyChangedObservable(nameof(UserName), () => UserName);
+
+        public IObservable<string> PasswordChanged =>
+            GetPropertyChangedObservable(nameof(Password), () => Password);
+
+        public IObservable<string> SelectedObservableChanged =>
+            GetPropertyChangedObservable(nameof(SelectedObservable), () => SelectedObservable);
+
+
+        // implementation of Observable auto completes
+        public void BasicChangeObservable()
+        {
+            ResetCounters();
+            serialDisposable.Disposable =
+                UserNameChanged
+                    .SelectMany(result => FilterList(_words, result))
+                    .Catch((TimeoutException exc) => Observable.Return(new List<string> { exc.Message }))
+                    .Repeat()
+                    .ObserveOn(_uiScheduler)
+                    .Subscribe(OnHandleInputList);
+        }
+
+        public void ThrowAwayResults()
+        {
+            ResetCounters();
+            serialDisposable.Disposable =
+                UserNameChanged
+                    .Select(result => FilterList(_words, result))
+                    .Switch()
+                    .Catch((TimeoutException exc) => Observable.Return(new List<string> { exc.Message }))
+                    .Repeat()
+                    .ObserveOn(_uiScheduler)
+                    .Subscribe(OnHandleInputList);
+        }
+
+        public void DebounceObservable()
+        {
+            ResetCounters();
+            serialDisposable.Disposable =
+                UserNameChanged
+                    .Throttle(TimeSpan.FromSeconds(1), scheduler: _backgroundScheduler)
+                    .SelectMany(result => FilterList(_words, result))
+                    .Catch((TimeoutException exc) => Observable.Return(new List<string> { exc.Message }))
+                    .Repeat()
+                    .ObserveOn(_uiScheduler)
+                    .Subscribe(OnHandleInputList);
+        }
+
+
+
+
+
+
+        private void SetupObservablePicker()
+        {
+            SelectedObservableChanged
+                .StartWith(nameof(BasicChangeObservable))
+                .Subscribe(selected =>
+                {
+                    switch (selected)
+                    {
+                        case nameof(BasicChangeObservable):
+                            BasicChangeObservable();
+                            break;
+                        case nameof(DebounceObservable):
+                            DebounceObservable();
+                            break;
+                        case nameof(ThrowAwayResults):
+                            ThrowAwayResults();
+                            break;
+                    }
+                });
+        }
+
+
+        void ResetCounters()
+        {
+            Notifications = 0;
+            FilterStarted = 0;
+        }
+
         public void Dispose()
         {
             disposable.Dispose();
         }
-
 
         void ReadFileIn()
         {
@@ -221,8 +234,6 @@ namespace RxPresentation
                     _words.Add(reader.ReadLine());
             }
         }
-
-
 
         void PasswordChangeObservable()
         {

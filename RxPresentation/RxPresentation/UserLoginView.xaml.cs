@@ -28,8 +28,19 @@ namespace RxPresentation
             this.On<iOS>().SetUseSafeArea(true);
 
             this.BindingContext = 
-                new UserLoginViewModelRxUI(TaskPoolScheduler.Default, XamarinDispatcherScheduler.Current);
-             
+                new UserLoginViewModelReactive(TaskPoolScheduler.Default, XamarinDispatcherScheduler.Current);
+
+
+
+            //Observable.FromEventPattern<EventHandler<TextChangedEventArgs>, TextChangedEventArgs>
+            //    (
+            //        x => tbUserName.TextChanged += x,
+            //        x => tbUserName.TextChanged -= x
+            //    )
+            //    .Subscribe(sub => { });
+
+            //tbUserName.Events().TextChanged
+            //    .Subscribe(sub => { });
 
         }
 
@@ -45,13 +56,6 @@ namespace RxPresentation
             base.OnDisappearing();
             disposable.Clear();
         }
-
-
-        #region System.Reactive
-        #endregion
-
-        #region ReactiveUI
-        #endregion
 
     }
 }

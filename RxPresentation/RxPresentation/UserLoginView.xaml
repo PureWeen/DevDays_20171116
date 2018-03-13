@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="RxPresentation.UserLoginView">
     <StackLayout BackgroundColor="White" x:Name="mainLayout" Margin="20">
-        <Picker x:Name="picker" Title="Select an OBservable" SelectedItem="{Binding SelectedObservable}">
+        <Picker x:Name="picker" Title="Select an OBservable" SelectedItem="{Binding SelectedObservable, Mode=TwoWay}">
             <Picker.ItemsSource>
                 <x:Array Type="{x:Type x:String}">
                     <x:String>BasicChangeObservable</x:String>
