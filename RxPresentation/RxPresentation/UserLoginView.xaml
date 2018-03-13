@@ -18,7 +18,7 @@
             <Label Text="Don't have an account? Sign up." VerticalOptions="FillAndExpand" VerticalTextAlignment="Center" HorizontalTextAlignment="Center" />
         </StackLayout>
     </StackLayout>
-        <AbsoluteLayout>
+        <AbsoluteLayout x:Name="abLayout">
             <BoxView  x:Name="absoluteBox" BackgroundColor="Red" AbsoluteLayout.LayoutBounds="115,150,100,100">
                 
             </BoxView>
