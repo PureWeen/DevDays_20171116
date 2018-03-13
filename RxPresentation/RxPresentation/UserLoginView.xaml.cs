@@ -45,6 +45,7 @@ namespace RxPresentation
 
             var gesture = new PanGestureRecognizer();
             
+            // complete event bug :-(
             int touchCount = 0;
             gesture
                 .Events()
@@ -54,16 +55,29 @@ namespace RxPresentation
                 {
                     var closureCount = Interlocked.Increment(ref touchCount);
                     var refCount = groups.Publish().RefCount();
+                    var startingBounds = absoluteBox.Bounds;
+
                     return refCount
                             .TakeUntil(refCount.Where(x => x.StatusType == GestureStatus.Completed || x.StatusType == GestureStatus.Canceled))
-                            .Select(result => new { TouchNumber = closureCount, result })
-                            .Finally(() => touchCount = Interlocked.Decrement(ref touchCount));
+                            .Select(result => new { Bounds = startingBounds, TouchNumber = closureCount, result })
+                            .Finally(() => Interlocked.Decrement(ref touchCount));
                    
-                })
+                })        
+                .ObserveOn(XamarinDispatcherScheduler.Current)
+                .DoLog("test")
                 .Subscribe(data =>
                 {
-                    var thing = data.result;
-                    Debug.WriteLine($"{data.TouchNumber} {thing.GestureId} {thing.StatusType} {thing.TotalX} {thing.TotalY}");
+                    if(data.TouchNumber == 1)
+                    {
+                        AbsoluteLayout.SetLayoutBounds(absoluteBox, 
+                            new Rectangle(data.Bounds.X + data.result.TotalX, data.Bounds.Y + data.result.TotalY, absoluteBox.Bounds.Width, absoluteBox.Bounds.Height));
+                    }
+                    else if(data.TouchNumber == 2)
+                    {
+                        AbsoluteLayout.SetLayoutBounds(absoluteBox,
+                            new Rectangle(absoluteBox.X, absoluteBox.Y, data.Bounds.Width + data.result.TotalX, data.Bounds.Height + data.result.TotalY));
+
+                    }
                 })
                 .DisposeWith(disposable);
 
