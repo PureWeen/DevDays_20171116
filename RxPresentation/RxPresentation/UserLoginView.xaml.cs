@@ -28,7 +28,7 @@ namespace RxPresentation
             this.On<iOS>().SetUseSafeArea(true);
 
             this.BindingContext = 
-                new UserLoginViewModelReactive(TaskPoolScheduler.Default, XamarinDispatcherScheduler.Current);
+                new UserLoginViewModelRxUI(TaskPoolScheduler.Default, XamarinDispatcherScheduler.Current);
              
 
         }

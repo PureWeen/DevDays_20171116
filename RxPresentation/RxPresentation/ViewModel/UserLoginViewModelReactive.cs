@@ -111,6 +111,8 @@ namespace RxPresentation
         {
             FilterStarted++;
 
+            if (String.IsNullOrWhiteSpace(filter))
+                return Observable.Return(new List<string>());
             // delay simulates a lookup or just a general time wait
             return Observable.Timer(TimeSpan.FromSeconds(1), scheduler: _backgroundScheduler)
                 .SelectMany(_ =>

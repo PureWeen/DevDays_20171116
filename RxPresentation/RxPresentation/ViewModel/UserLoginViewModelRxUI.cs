@@ -22,21 +22,40 @@ namespace RxPresentation
         private IReadOnlyList<string> _searchTerms;
         SerialDisposable serialDisposable = new SerialDisposable(); 
         List<string> _words = null;
-        private int _notifications;
-        private int _filterStarted;
         private string _selectedObservable;
         private ObservableAsPropertyHelper<bool> _isValid;
+        private ObservableAsPropertyHelper<int> _notifications;
+        private ObservableAsPropertyHelper<int> _filterStarted;
 
         public UserLoginViewModelRxUI(IScheduler backgroundScheduler, IScheduler uiScheduler)
         {
+            // Layer is null
+            this.WhenAnyValue(x => x.Layer.Notifications)
+                .ToProperty(this, vm => vm.Notifications, out _notifications);
+
+            this.WhenAnyValue(x => x.Layer.FilterStarted)
+                .ToProperty(this, vm => vm.FilterStarted, out _filterStarted);
+
+            Layer = new PointlessLayer();
+
+
             _backgroundScheduler = backgroundScheduler;
             _uiScheduler = uiScheduler;
             ReadFileIn();
             PasswordChangeObservable();
             SetupObservablePicker();
 
+            // Command that can be interact with in an observable way
             LoginCommand = ReactiveCommand<Unit, Unit>.Create(() => { },
                 canExecute: this.WhenAnyValue(x=> x.IsValid));
+
+            LoginCommand
+                .Subscribe(valueProducedByExecute => { });
+
+            LoginCommand
+                .IsExecuting.Subscribe(isExecuting => { });
+
+
         }
 
         public void BasicChangeObservable()
@@ -79,7 +98,7 @@ namespace RxPresentation
 
         void OnHandleInputList(IReadOnlyList<string> inputList)
         {
-            Notifications++;
+            Layer.Notifications++;
             SearchTerms = inputList;
         }
 
@@ -106,9 +125,15 @@ namespace RxPresentation
         }
 
         Random randomGenerator = new Random();
+        private PointlessLayer _layer;
+
         IObservable<IReadOnlyList<string>> FilterList(IReadOnlyList<string> inputList, string filter)
         {
-            FilterStarted++;
+            Layer.FilterStarted++;
+
+            // influence the stream easily
+            if (String.IsNullOrWhiteSpace(filter))
+                return Observable.Return(new List<string>());
 
             // delay simulates a lookup or just a general time wait
             return Observable.Timer(TimeSpan.FromSeconds(1), scheduler: _backgroundScheduler)
@@ -126,8 +151,8 @@ namespace RxPresentation
 
         void ResetCounters()
         {
-            Notifications = 0;
-            FilterStarted = 0;
+            Layer.Notifications = 0;
+            Layer.FilterStarted = 0;
         }
 
 
@@ -153,18 +178,6 @@ namespace RxPresentation
             set => this.RaiseAndSetIfChanged(ref _UserName, value);
         }
 
-        public int Notifications
-        {
-            get => _notifications;
-            set => this.RaiseAndSetIfChanged(ref _notifications, value);
-        }
-
-        public int FilterStarted
-        {
-            get => _filterStarted;
-            set => this.RaiseAndSetIfChanged(ref _filterStarted, value);
-        }
-
         public string SelectedObservable
         {
             get => _selectedObservable;
@@ -181,11 +194,27 @@ namespace RxPresentation
         {
             get => _isValid.Value;
         }
+        public int Notifications
+        {
+            get => _notifications.Value;
+        }
+
+        public int FilterStarted
+        {
+            get => _filterStarted.Value;
+        }
+
+        public PointlessLayer Layer
+        {
+            get => _layer;
+            set => this.RaiseAndSetIfChanged(ref _layer, value);
+        }
+
         public ReactiveCommand<Unit, Unit> LoginCommand { get; }
 
         void PasswordChangeObservable()
         {
-            Notifications = 0;
+            Layer.Notifications = 0;
             PasswordChanged
                 .SelectMany(result => FilterList(_words, result))
                 .Select(results => results.Select(result => Enumerable.Range(1, result.Length).Select(x => "*").ToArray()))
@@ -218,5 +247,24 @@ namespace RxPresentation
             }
         }
 
+    }
+
+    public class PointlessLayer : ReactiveObject
+    {
+        private int _notifications;
+        private int _filterStarted;
+
+
+        public int Notifications
+        {
+            get => _notifications;
+            set => this.RaiseAndSetIfChanged(ref _notifications, value);
+        }
+
+        public int FilterStarted
+        {
+            get => _filterStarted;
+            set => this.RaiseAndSetIfChanged(ref _filterStarted, value);
+        }
     }
 }
