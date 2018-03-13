@@ -11,14 +11,14 @@ using System.Windows.Input;
 
 namespace RxPresentation
 {
-    public class UserLoginViewModel : ReactiveObject, IDisposable
+    public class UserLoginViewModelRxUI : ReactiveObject, IDisposable
     {
 
         IScheduler _backgroundScheduler;
         IScheduler _uiScheduler;
         CompositeDisposable disposable = new CompositeDisposable();
 
-        public UserLoginViewModel(IScheduler backgroundScheduler, IScheduler uiScheduler)
+        public UserLoginViewModelRxUI(IScheduler backgroundScheduler, IScheduler uiScheduler)
         {
             _backgroundScheduler = backgroundScheduler;
             _uiScheduler = uiScheduler;
