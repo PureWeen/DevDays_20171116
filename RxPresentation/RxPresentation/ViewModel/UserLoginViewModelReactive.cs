@@ -8,6 +8,7 @@ using System.Reactive.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Linq;
+using Xamarin.Forms;
 
 namespace RxPresentation
 {
@@ -34,9 +35,12 @@ namespace RxPresentation
             ReadFileIn();
             PasswordChangeObservable();
             SetupObservablePicker();
+
+
+            LoginCommand = new Command(() => { }, () => IsValid);
         }
 
-        void BasicChangeObservable()
+        public void BasicChangeObservable()
         {
             ResetCounters();
             serialDisposable.Disposable =
@@ -44,10 +48,11 @@ namespace RxPresentation
                     .SelectMany(result => FilterList(_words, result))
                     .Catch((TimeoutException exc) => Observable.Return(new List<string> { exc.Message }))
                     .Repeat()
+                    .ObserveOn(_uiScheduler)
                     .Subscribe(OnHandleInputList);
         }
 
-        void ThrowAwayResults()
+        public void ThrowAwayResults()
         {
             ResetCounters();
             serialDisposable.Disposable =
@@ -56,18 +61,20 @@ namespace RxPresentation
                     .Switch()
                     .Catch((TimeoutException exc)=> Observable.Return(new List<string> { exc.Message }) )
                     .Repeat()
+                    .ObserveOn(_uiScheduler)
                     .Subscribe(OnHandleInputList);
         }
 
-        void DebounceObservable()
+        public void DebounceObservable()
         {
             ResetCounters();
             serialDisposable.Disposable =
                 UserNameChanged
-                    .Throttle(TimeSpan.FromSeconds(1))
+                    .Throttle(TimeSpan.FromSeconds(1), scheduler: _backgroundScheduler)
                     .SelectMany(result => FilterList(_words, result))
                     .Catch((TimeoutException exc) => Observable.Return(new List<string> { exc.Message }))
                     .Repeat()
+                    .ObserveOn(_uiScheduler)
                     .Subscribe(OnHandleInputList);
         }
 
@@ -105,7 +112,7 @@ namespace RxPresentation
             FilterStarted++;
 
             // delay simulates a lookup or just a general time wait
-            return Observable.Timer(TimeSpan.FromSeconds(1))
+            return Observable.Timer(TimeSpan.FromSeconds(1), scheduler: _backgroundScheduler)
                 .SelectMany(_ =>
                 {
                     if(randomGenerator.Next(0, 10) == 3)
@@ -185,6 +192,7 @@ namespace RxPresentation
             get => _isValid;
             set => this.RaiseAndSetIfChanged(ref _isValid, value);
         }
+        public Command LoginCommand { get; }
 
         public void RaiseAndSetIfChanged<T>(ref T input, T newValue, [CallerMemberName]string propertyName = "")
         {
@@ -236,6 +244,7 @@ namespace RxPresentation
                 .Subscribe(isValid =>
                 {
                     IsValid = isValid;
+                    LoginCommand?.ChangeCanExecute();
                 });
         }
     }

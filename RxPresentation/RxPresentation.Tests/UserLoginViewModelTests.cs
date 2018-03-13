@@ -13,9 +13,9 @@ using System.Reactive;
 public class UserLoginViewModelRxUITests
 {
 
-    UserLoginViewModelRxUI Create(IScheduler scheduler)
+    UserLoginViewModelRxUIComplex Create(IScheduler scheduler)
     {
-        return new UserLoginViewModelRxUI(backgroundScheduler: scheduler, uiScheduler: scheduler);
+        return new UserLoginViewModelRxUIComplex(backgroundScheduler: scheduler, uiScheduler: scheduler);
     }
 
 

@@ -39,4 +39,22 @@ public class UserLoginViewModelReactiveTests
             Assert.Equal(testMe, "Password");
         });
     }
+
+
+    [Fact]
+    public void BasicThrottleTest()
+    {
+        (new TestScheduler()).With(sched =>
+        {
+            var vm = Create(sched);
+            vm.SelectedObservable = nameof(UserLoginViewModelReactive.DebounceObservable);
+
+            vm.UserName = "awe";
+            Assert.Null(vm.SearchTerms);
+            sched.AdvanceByMs(10000);
+            Assert.NotNull(vm.SearchTerms);
+            Assert.Equal(1, vm.Notifications);
+            Assert.Equal(1, vm.FilterStarted);
+        });
+    }
 } 
